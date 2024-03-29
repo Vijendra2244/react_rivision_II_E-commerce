@@ -1,14 +1,19 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Box } from "@chakra-ui/react";
 import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
+import { useToast } from "@chakra-ui/react";
 
 function Login() {
   const [formData, setFormData] = useState({
     email: "",
     pass: "",
   });
+  const toast = useToast();
+  const { setToken, setAuth } = useContext(AuthContext);
 
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,19 +25,43 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
+
     try {
-      const response = await axios.post("https://reqres.in/login", formData);
-      console.log(response);
+      const response = await axios.post("https://reqres.in/api/login", {
+        email: formData.email,
+        password: formData.pass,
+      });
+
+      if (response.data.token) {
+        setToken(response.data.token);
+        setAuth(true);
+        toast({
+          title: "Account created.",
+          description: "Login successfully!!",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
+      }
+      setFormData({
+        email: "",
+        pass: "",
+      });
     } catch (error) {
       setError("Login failed. Please check your credentials.");
       console.error("Error during login:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Box
       display="flex"
-      w={"15%"}
+      w={"30%"}
       m={"auto"}
       border={"1px solid black"}
       borderRadius={"10px"}
@@ -50,6 +79,7 @@ function Login() {
           id="email"
           value={formData.email}
           onChange={handleChange}
+          required
         />
         <label htmlFor="pass">Enter your password</label>
         <input
@@ -59,8 +89,9 @@ function Login() {
           id="pass"
           value={formData.pass}
           onChange={handleChange}
+          required
         />
-        <input
+        <button
           style={{
             backgroundColor: "blue",
             color: "white",
@@ -68,8 +99,10 @@ function Login() {
             cursor: "pointer",
           }}
           type="submit"
-          value="Submit"
-        />
+          disabled={loading}
+        >
+          {loading ? "Submitting..." : "Submit"}
+        </button>
         {error && <p style={{ color: "red" }}>{error}</p>}
       </form>
     </Box>
